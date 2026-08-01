@@ -125,23 +125,42 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id_to_send = user_destinations.get(user_id, update.effective_chat.id)
     
     try:
-        original_html = update.message.caption_html if update.message.caption else None
-        
-        if original_html:
-            # Clean the caption: remove any line containing '@' or 't.me/'
-            lines = original_html.split('\n')
-            cleaned_lines = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
-            cleaned_html = '\n'.join(cleaned_lines)
-            
-            await context.bot.copy_message(
-                chat_id=chat_id_to_send,
-                from_chat_id=update.effective_chat.id,
-                message_id=update.message.message_id,
-                caption=cleaned_html,
-                parse_mode="HTML"
-            )
+        # Check if there is a caption
+        if update.message.caption:
+            # Check the PLAIN TEXT for junk. If there is no junk, copy exactly as-is to perfectly preserve formatting.
+            if '@' in update.message.caption or 't.me/' in update.message.caption.lower():
+                # It has junk. Let's try to clean the HTML to preserve formatting.
+                lines = update.message.caption_html.split('\n')
+                cleaned_lines = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
+                cleaned_html = '\n'.join(cleaned_lines)
+                
+                try:
+                    await context.bot.copy_message(
+                        chat_id=chat_id_to_send,
+                        from_chat_id=update.effective_chat.id,
+                        message_id=update.message.message_id,
+                        caption=cleaned_html,
+                        parse_mode="HTML"
+                    )
+                except Exception as html_err:
+                    # If HTML parsing crashes (e.g. broken tags), fall back to cleaning plain text!
+                    plain_lines = update.message.caption.split('\n')
+                    cleaned_plain = '\n'.join([line for line in plain_lines if '@' not in line and 't.me/' not in line.lower()])
+                    await context.bot.copy_message(
+                        chat_id=chat_id_to_send,
+                        from_chat_id=update.effective_chat.id,
+                        message_id=update.message.message_id,
+                        caption=cleaned_plain
+                    )
+            else:
+                # NO junk detected! Copy natively (zero bugs, perfectly preserves all formatting)
+                await context.bot.copy_message(
+                    chat_id=chat_id_to_send,
+                    from_chat_id=update.effective_chat.id,
+                    message_id=update.message.message_id
+                )
         else:
-            # No caption, just copy it normally
+            # No caption at all, copy normally
             await context.bot.copy_message(
                 chat_id=chat_id_to_send,
                 from_chat_id=update.effective_chat.id,
@@ -149,7 +168,7 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             )
             
     except Exception as e:
-        await update.message.reply_text(f"❌ Failed to send to `{chat_id_to_send}`. Are you sure I'm an admin there?\n\nError: {e}", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ Failed to send to `{chat_id_to_send}`.\n\nError: {e}", parse_mode="Markdown")
 
 
 class DummyHandler(BaseHTTPRequestHandler):
