@@ -252,7 +252,7 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             preview = f"<pre>{cleaned_text}</pre>" if cleaned_text else "<i>(No text)</i>"
             
             prompt_msg = await update.message.reply_text(
-                f"📝 **File Paused!**\n\nTo add your custom text, **REPLY** to this message with your new text.\n\n_Auto-Cleaned Original:_ \n{preview}",
+                f"📝 <b>File Paused!</b>\n\nTo add your custom text, <b>REPLY</b> to this message with your new text.\n\n<i>Auto-Cleaned Original:</i> \n{preview}",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
