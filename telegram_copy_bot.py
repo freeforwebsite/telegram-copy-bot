@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, MessageHandler, CommandHandler, filters, ContextTypes
 
 import os
 
@@ -17,6 +17,20 @@ load_env()
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
 DESTINATION_CHANNEL_ID = ""
+
+async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sends a grand welcome message when the command /start is issued."""
+    welcome_text = (
+        "✨ *Welcome to the Ultimate Copy Bot\\!* ✨\n\n"
+        "I am your personal assistant designed to instantly clone messages, files, and media *without the annoying 'Forwarded from' tag*\\.\n\n"
+        "📜 *How to use me:*\n"
+        "1️⃣ Simply forward or send any file, photo, or message to me\\.\n"
+        "2️⃣ I will immediately process it and send you back a crystal\\-clean copy\\.\n"
+        "3️⃣ You can then share this clean copy anywhere you like\\!\n\n"
+        "⚡ _Fast, secure, and completely untraceable\\._\n\n"
+        "Drop a file below to see the magic\\! 👇"
+    )
+    await update.message.reply_text(welcome_text, parse_mode="MarkdownV2")
 
 async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Copies any received message and sends it to the destination."""
@@ -55,6 +69,7 @@ def main():
     
     print("Starting bot...")
     application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler('start', start_handler))
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, copy_message_handler))
     print("Bot is online! Send a file to the bot.")
     application.run_polling()
