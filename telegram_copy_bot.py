@@ -117,6 +117,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_state()
         await query.edit_message_text(f"✅ **Target Channel Locked!**\n\nDestination set to: {channel}\n\nDrop your files now!", parse_mode="Markdown")
 
+import re
+
 async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
@@ -125,40 +127,29 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id_to_send = user_destinations.get(user_id, update.effective_chat.id)
     
     try:
-        # Check if there is a caption
         if update.message.caption:
-            # Check the PLAIN TEXT for junk. If there is no junk, copy exactly as-is to perfectly preserve formatting.
-            if '@' in update.message.caption or 't.me/' in update.message.caption.lower():
-                # It has junk. Let's try to clean the HTML to preserve formatting.
-                lines = update.message.caption_html.split('\n')
-                cleaned_lines = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
-                cleaned_html = '\n'.join(cleaned_lines)
-                
-                try:
-                    await context.bot.copy_message(
-                        chat_id=chat_id_to_send,
-                        from_chat_id=update.effective_chat.id,
-                        message_id=update.message.message_id,
-                        caption=cleaned_html,
-                        parse_mode="HTML"
-                    )
-                except Exception as html_err:
-                    # If HTML parsing crashes (e.g. broken tags), fall back to cleaning plain text!
-                    plain_lines = update.message.caption.split('\n')
-                    cleaned_plain = '\n'.join([line for line in plain_lines if '@' not in line and 't.me/' not in line.lower()])
-                    await context.bot.copy_message(
-                        chat_id=chat_id_to_send,
-                        from_chat_id=update.effective_chat.id,
-                        message_id=update.message.message_id,
-                        caption=cleaned_plain
-                    )
-            else:
-                # NO junk detected! Copy natively (zero bugs, perfectly preserves all formatting)
-                await context.bot.copy_message(
-                    chat_id=chat_id_to_send,
-                    from_chat_id=update.effective_chat.id,
-                    message_id=update.message.message_id
-                )
+            # 1. Start with plain text (This strips broken formatting from old files)
+            plain_text = update.message.caption
+            
+            # 2. Clean out junk lines (promotional links)
+            lines = plain_text.split('\n')
+            cleaned_lines = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
+            cleaned_text = '\n'.join(cleaned_lines)
+            
+            # 3. Escape HTML to prevent any crashing
+            cleaned_text = cleaned_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            
+            # 4. Standardize the formatting (Make Name and Size "Blue" monospace)
+            cleaned_text = re.sub(r'(?i)([^\n]*?Name\s*:\s*)(.+)', r'\1<code>\2</code>', cleaned_text)
+            cleaned_text = re.sub(r'(?i)([^\n]*?Size\s*:\s*)(.+)', r'\1<code>\2</code>', cleaned_text)
+            
+            await context.bot.copy_message(
+                chat_id=chat_id_to_send,
+                from_chat_id=update.effective_chat.id,
+                message_id=update.message.message_id,
+                caption=cleaned_text,
+                parse_mode="HTML"
+            )
         else:
             # No caption at all, copy normally
             await context.bot.copy_message(
