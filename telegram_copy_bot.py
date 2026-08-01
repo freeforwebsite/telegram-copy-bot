@@ -35,7 +35,24 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         print(f"Failed to copy message: {e}")
 
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), DummyHandler)
+    server.serve_forever()
+
 def main():
+    print("Starting dummy web server for Render...")
+    threading.Thread(target=run_dummy_server, daemon=True).start()
+    
     print("Starting bot...")
     application = Application.builder().token(TOKEN).build()
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, copy_message_handler))
