@@ -128,20 +128,36 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     
     try:
         if update.message.caption:
-            # 1. Start with plain text (This strips broken formatting from old files)
             plain_text = update.message.caption
             
-            # 2. Clean out junk lines (promotional links)
+            # Clean junk lines
             lines = plain_text.split('\n')
-            cleaned_lines = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
-            cleaned_text = '\n'.join(cleaned_lines)
+            cleaned = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
             
-            # 3. Escape HTML to prevent any crashing
-            cleaned_text = cleaned_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            formatted_lines = []
+            for line in cleaned:
+                # Escape HTML to prevent crashing
+                line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                
+                # 1. Check for Key-Value pairs (Name, Size, Audio, Subtitles, Quality)
+                kv_match = re.match(r'^(.*?)(Name|Size|Audio|Subtitle[s]?|Quality)(\s*:\s*)(.+)$', line, re.IGNORECASE)
+                if kv_match:
+                    prefix = kv_match.group(1)
+                    key = kv_match.group(2)
+                    separator = kv_match.group(3)
+                    value = kv_match.group(4)
+                    formatted_lines.append(f"{prefix}{key}{separator}<code>{value}</code>")
+                    continue
+                    
+                # 2. Check for the raw filename line (usually ends with .mkv, .mp4, .avi)
+                if re.search(r'\.(mkv|mp4|avi)\s*$', line, re.IGNORECASE):
+                    formatted_lines.append(f"<code>{line}</code>")
+                    continue
+                    
+                # 3. Otherwise, leave the line as plain text
+                formatted_lines.append(line)
             
-            # 4. Standardize the formatting (Make Name and Size "Blue" monospace)
-            cleaned_text = re.sub(r'(?i)([^\n]*?Name\s*:\s*)(.+)', r'\1<code>\2</code>', cleaned_text)
-            cleaned_text = re.sub(r'(?i)([^\n]*?Size\s*:\s*)(.+)', r'\1<code>\2</code>', cleaned_text)
+            cleaned_text = '\n'.join(formatted_lines)
             
             await context.bot.copy_message(
                 chat_id=chat_id_to_send,
@@ -151,7 +167,7 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 parse_mode="HTML"
             )
         else:
-            # No caption at all, copy normally
+            # No caption at all
             await context.bot.copy_message(
                 chat_id=chat_id_to_send,
                 from_chat_id=update.effective_chat.id,
