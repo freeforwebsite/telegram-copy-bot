@@ -125,11 +125,29 @@ async def copy_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id_to_send = user_destinations.get(user_id, update.effective_chat.id)
     
     try:
-        await context.bot.copy_message(
-            chat_id=chat_id_to_send,
-            from_chat_id=update.effective_chat.id,
-            message_id=update.message.message_id
-        )
+        original_html = update.message.caption_html if update.message.caption else None
+        
+        if original_html:
+            # Clean the caption: remove any line containing '@' or 't.me/'
+            lines = original_html.split('\n')
+            cleaned_lines = [line for line in lines if '@' not in line and 't.me/' not in line.lower()]
+            cleaned_html = '\n'.join(cleaned_lines)
+            
+            await context.bot.copy_message(
+                chat_id=chat_id_to_send,
+                from_chat_id=update.effective_chat.id,
+                message_id=update.message.message_id,
+                caption=cleaned_html,
+                parse_mode="HTML"
+            )
+        else:
+            # No caption, just copy it normally
+            await context.bot.copy_message(
+                chat_id=chat_id_to_send,
+                from_chat_id=update.effective_chat.id,
+                message_id=update.message.message_id
+            )
+            
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to send to `{chat_id_to_send}`. Are you sure I'm an admin there?\n\nError: {e}", parse_mode="Markdown")
 
