@@ -44,14 +44,14 @@ load_state()
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
-        "✨ *Welcome to the Ultimate Multi-Channel Copy Bot\\!* ✨\n\n"
+        "✨ *Welcome to the Ultimate Multi-Channel Copy Bot!* ✨\n\n"
         "📜 *How to use me:*\n"
-        "1️⃣ Use `/add @yourchannel` to add a channel to your quick\\-select menu\\.\n"
-        "2️⃣ Use `/menu` to open the visual channel selector\\!\n"
-        "3️⃣ Tap a channel button to lock onto it, then drop as many files as you want\\.\n\n"
-        "⚡ _Make sure I am added as an Admin to your channels so I can post\\!_"
+        "1️⃣ Use `/add @yourchannel` to add a channel to your quick-select menu.\n"
+        "2️⃣ Use `/menu` to open the visual channel selector!\n"
+        "3️⃣ Tap a channel button to lock onto it, then drop as many files as you want.\n\n"
+        "⚡ _Make sure I am added as an Admin to your channels so I can post!_"
     )
-    await update.message.reply_text(welcome_text, parse_mode="MarkdownV2")
+    await update.message.reply_text(welcome_text, parse_mode="Markdown")
 
 async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Adds a channel to the user's saved list."""
